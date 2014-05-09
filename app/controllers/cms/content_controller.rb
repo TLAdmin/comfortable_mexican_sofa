@@ -15,17 +15,22 @@ class Cms::ContentController < Cms::BaseController
     # render :text => "TEST"
     # return
 
-    ap "---------------------- OVERRIDE (comfortable_mexican_sofa / app / controllers / cms / content_controller.rb) ---------------------------"
+    ap "-LOCAL --------------------- OVERRIDE (comfortable_mexican_sofa / app / controllers / cms / content_controller.rb) ---------------------------"
     #ap @cms_page
 
     children  = Tlobject.where(page_id: @cms_page.id) 
     if children.length == 1
-      child = children[0] 
-      klass = child.tlobject_type.constantize
-      target = klass.find(child.type_id) 
-      content_group = ContentGroup.find(child.content_group_id).tlobject.name
+      tl_object = children[0] 
+      klass = tl_object.tlobject_type.constantize
+      target = klass.find(tl_object.type_id) 
+      content_group = ContentGroup.find(tl_object.content_group_id).tlobject.name
 
-      render  "#{target.type_plural}/show", :locals => {page: @cms_page, tlobject: child, target: target, content_group: content_group }
+      if tl_object.tlobject_type == "Quiz"
+        render :text => renderActionInOtherController(QuizzesController, :show, params, target, content_group, @cms_page)
+      else
+        render "#{target.type_plural}/show", :locals => {page: @cms_page, tlobject: tl_object, target: target, content_group: content_group }
+      end
+
       return
     end
  
@@ -37,7 +42,24 @@ class Cms::ContentController < Cms::BaseController
     end
   end
 
- 
+ def renderActionInOtherController(controller, action, params, target, content_group, cms_page)
+    controller.class_eval{
+      def params=(params); @params = params end
+      def params; @params end
+    }
+    c = controller.new
+
+    c.cms_page = cms_page
+    c.target = target
+    c.content_group = content_group
+    
+    c.request = @_request
+    c.response = @_response
+    c.params = params
+    c.send(action)
+    c.response.body
+  end
+
   # def render_html(status = 200)
   #   if @cms_layout = @cms_page.layout
   #     app_layout = (@cms_layout.app_layout.blank? || request.xhr?) ? false : @cms_layout.app_layout
