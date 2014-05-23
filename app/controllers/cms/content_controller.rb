@@ -25,11 +25,17 @@ class Cms::ContentController < Cms::BaseController
       target = klass.find(tl_object.type_id) 
       content_group = ContentGroup.find(tl_object.content_group_id).tlobject.name
 
-      if tl_object.tlobject_type == "Quiz"
-        render :text => renderActionInOtherController(QuizzesController, :show, params, target, content_group, @cms_page)
-      else
-        render "#{target.type_plural}/show", :locals => {page: @cms_page, tlobject: tl_object, target: target, content_group: content_group }
+      # Only use CMS for: "Application","Chapter","Lesson","Quiz"
+      unless ["Application","Chapter","Lesson","Quiz"].include? "#{tl_object.tlobject_type}"
+        raise "Unknown Type: #{tl_object.tlobject_type}"
       end
+
+#      controller_name = "#{tl_object.tlobject_type}sController"
+
+      controller_name = "#{target.type_plural.capitalize}Controller"
+ 
+      controller_type = controller_name.constantize
+      render :text => renderActionInOtherController(controller_type, :show, params, target, content_group, @cms_page)
 
       return
     end
