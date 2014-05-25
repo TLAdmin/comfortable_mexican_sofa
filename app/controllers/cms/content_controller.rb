@@ -16,7 +16,6 @@ class Cms::ContentController < Cms::BaseController
     # return
 
     ap "-LOCAL --------------------- OVERRIDE (comfortable_mexican_sofa / app / controllers / cms / content_controller.rb) ---------------------------"
-    #ap @cms_page
 
     children  = Tlobject.where(page_id: @cms_page.id) 
     if children.length == 1
@@ -30,10 +29,7 @@ class Cms::ContentController < Cms::BaseController
         raise "Unknown Type: #{tl_object.tlobject_type}"
       end
 
-#      controller_name = "#{tl_object.tlobject_type}sController"
-
       controller_name = "#{target.type_plural.capitalize}Controller"
- 
       controller_type = controller_name.constantize
       render :text => renderActionInOtherController(controller_type, :show, params, target, content_group, @cms_page)
 
