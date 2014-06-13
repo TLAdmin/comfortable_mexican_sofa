@@ -24,8 +24,8 @@ class Cms::ContentController < Cms::BaseController
       target = klass.find(tl_object.type_id) 
       content_group = ContentGroup.find(tl_object.content_group_id).tlobject.name
 
-      # Only use CMS for: "Application","Chapter","Lesson","Quiz"
-      unless ["Application","Chapter","Lesson","Quiz"].include? "#{tl_object.tlobject_type}"
+      # Only use CMS for: "Application","Chapter","Lesson","Quiz","Link"
+      unless ["Application","Chapter","Lesson","Quiz","Link"].include? "#{tl_object.tlobject_type}"
         raise "Unknown Type: #{tl_object.tlobject_type}"
       end
 
