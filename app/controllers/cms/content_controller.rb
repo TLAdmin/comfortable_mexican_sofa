@@ -15,7 +15,15 @@ class Cms::ContentController < Cms::BaseController
     # render :text => "TEST"
     # return
 
-    ap "-LOCAL --------------------- OVERRIDE (comfortable_mexican_sofa / app / controllers / cms / content_controller.rb) ---------------------------"
+    ap "Cms::ContentController.render_html --------------------- OVERRIDE (comfortable_mexican_sofa / app / controllers / cms / content_controller.rb) ---------------------------"
+
+    if CacheHelper.use_memory_cache?(request.env['PATH_INFO'])
+      ap "Using the memory cache for #{request.env['PATH_INFO']}"
+      render :text => CacheHelper::MemoryCache.instance.get_for_uri(request.env['PATH_INFO'])
+      return
+    else
+      ap "No memory cache hit for #{request.env['PATH_INFO']}"
+    end
 
     children  = Tlobject.where(page_id: @cms_page.id) 
     if children.length == 1
