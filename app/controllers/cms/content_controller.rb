@@ -11,9 +11,6 @@ class Cms::ContentController < Cms::BaseController
                 :only => [:render_css, :render_js]
   
   def render_html(status = 200)
-  
-    # render :text => "TEST"
-    # return
 
     ap "Cms::ContentController.render_html --------------------- OVERRIDE (comfortable_mexican_sofa / app / controllers / cms / content_controller.rb) ---------------------------"
 
@@ -103,11 +100,16 @@ protected
     return redirect_to(@cms_page.target_page.url) if @cms_page.target_page
     
   rescue ActiveRecord::RecordNotFound
-    if @cms_page = @cms_site.pages.published.find_by_full_path('/404')
-      render_html(404)
-    else
-      raise ActionController::RoutingError.new("Page Not Found at: \"#{params[:cms_path]}\"")
-    end
+    # Go to root page if we can't find a match
+    flash.now[:error] = 'Could not find page: #{params[:cms_path]}'
+    @cms_page = @cms_site.pages.published.find_by_full_path!("/")
+    return redirect_to(@cms_page.target_page.url) if @cms_page.target_page
+
+    # if @cms_page = @cms_site.pages.published.find_by_full_path('/404')
+    #   render_html(404)
+    # else
+    #   raise ActionController::RoutingError.new("Page Not Found at: \"#{params[:cms_path]}\"")
+    # end
   end
 
   def load_cms_layout
