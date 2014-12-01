@@ -12,16 +12,30 @@ class Cms::ContentController < Cms::BaseController
   
   def render_html(status = 200)
 
-    ap "Cms::ContentController.render_html --------------------- OVERRIDE (comfortable_mexican_sofa / app / controllers / cms / content_controller.rb) ---------------------------"
+    path = request.env['PATH_INFO']
+    ap "Cms::ContentController.render_html for #{path}"
 
-    if CacheHelper.use_memory_cache?(request.env['PATH_INFO'])
-      ap "Using the memory cache for #{request.env['PATH_INFO']}"
-      render :text => CacheHelper::MemoryCache.instance.get_for_uri(request.env['PATH_INFO'])
+    # Let's start by trying to get a Memory or DB Cache hit
+    if CacheHelper.use_memory_cache?(path)
+      ap "Cms::ContentController.render_html: Using the memory cache"
+      render :text => CacheHelper::MemoryCache.instance.get_for_uri(path)
       return
     else
-      ap "No memory cache hit for #{request.env['PATH_INFO']}"
+      ap "Cms::ContentController.render_html: No memory cache hit. Checking DB . . ."
+      db_entries = TlCache.where(cache_sub_type: "full", uri: path).to_a
+      if db_entries.length == 0
+        ap "Cms::ContentController.render_html: No DB TlCache hit either. Let's render!!"
+      elsif db_entries.length == 1
+        ap "Cms::ContentController.render_html: Found DB TlCache hit."
+        CacheHelper::MemoryCache.instance.set_for_uri(path, db_entries[0].value)
+        render :text => db_entries[0].value
+        return
+      else
+        puts "ERROR: Found #{db_entries.length} DB TlCache entries".red
+      end
     end
 
+    # OK, no cache. We'll need to actually render stuff
     children  = Tlobject.where(page_id: @cms_page.id) 
     if children.length == 1
       tl_object = children[0] 
@@ -101,9 +115,8 @@ protected
     
   rescue ActiveRecord::RecordNotFound
     # Go to root page if we can't find a match
-    flash.now[:error] = 'Could not find page: #{params[:cms_path]}'
-    @cms_page = @cms_site.pages.published.find_by_full_path!("/")
-    return redirect_to(@cms_page.target_page.url) if @cms_page.target_page
+    puts "404 Error: Could not find page: #{params[:cms_path]}. Redirect to root".red
+    return redirect_to("/", alert: "Watch it, mister!")
 
     # if @cms_page = @cms_site.pages.published.find_by_full_path('/404')
     #   render_html(404)
