@@ -21,17 +21,22 @@ class Cms::ContentController < Cms::BaseController
       render :text => CacheHelper::MemoryCache.instance.get_for_uri(path)
       return
     else
-      ap "Cms::ContentController.render_html: No memory cache hit. Checking DB . . ."
-      db_entries = TlCache.where(cache_sub_type: "full", uri: path).to_a
-      if db_entries.length == 0
-        ap "Cms::ContentController.render_html: No DB TlCache hit either. Let's render!!"
-      elsif db_entries.length == 1
-        ap "Cms::ContentController.render_html: Found DB TlCache hit."
-        CacheHelper::MemoryCache.instance.set_for_uri(path, db_entries[0].value)
-        render :text => db_entries[0].value
-        return
-      else
-        puts "ERROR: Found #{db_entries.length} DB TlCache entries".red
+      ap "Cms::ContentController.render_html: No memory cache hit."
+
+      if Rails.configuration.tg_use_db_cache
+        ap "Checking DB . . ."
+
+        db_entries = TlCache.where(cache_sub_type: "full", uri: path).to_a
+        if db_entries.length == 0
+          ap "Cms::ContentController.render_html: No DB TlCache hit either. Let's render!!"
+        elsif db_entries.length == 1
+          ap "Cms::ContentController.render_html: Found DB TlCache hit."
+          CacheHelper::MemoryCache.instance.set_for_uri(path, db_entries[0].value)
+          render :text => db_entries[0].value
+          return
+        else
+          puts "ERROR: Found #{db_entries.length} DB TlCache entries".red
+        end
       end
     end
 
